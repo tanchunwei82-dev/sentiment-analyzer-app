@@ -109,6 +109,7 @@ if generate_clicked:
         for error in errors:
             st.error(error)
     else:
+        uploaded_file.seek(0)
         reviews_df = pd.read_csv(uploaded_file)
         with st.spinner("Analysing sentiments..."):
             reviews_df["sentiment"] = reviews_df[review_column].apply(classify_sentiment_openai)
