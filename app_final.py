@@ -1,18 +1,21 @@
+ · PY
+Copy
+
 import streamlit as st
 from openai import OpenAI
 import pandas as pd
 import plotly.express as px
-
+ 
 st.title("🥗 Customer Review Sentiment Analyzer")
 st.markdown("This app analyzes the sentiment of customer reviews to gain insights into their opinions.")
-
+ 
 # OpenAI API Key input
 openai_api_key = st.sidebar.text_input(
     "Enter your OpenAI API Key", 
     type="password", 
     help="You can find your API key at https://platform.openai.com/account/api-keys"
 )
-
+ 
 def classify_sentiment_openai(review_text):
     """
     Classify the sentiment of a customer review using OpenAI's GPT-4o model.
@@ -27,10 +30,10 @@ def classify_sentiment_openai(review_text):
         State your answer
         as a single word, "positive", 
         "negative" or "neutral":
-
+ 
         {review_text}
         '''
-
+ 
     completion = client.chat.completions.create(
         model="gpt-4o",
         messages=[
@@ -41,32 +44,45 @@ def classify_sentiment_openai(review_text):
             }
         ]
     ) 
-
+ 
     return completion.choices[0].message.content
-
-
+ 
+ 
+# Example CSV format
+with st.expander("📋 See example CSV format"):
+    st.markdown("Your CSV file should have at least one text column containing the reviews. Here's an example:")
+    example_df = pd.DataFrame({
+        "Reviews": [
+            "The food was absolutely delicious, we'll be back!",
+            "Slow service, the wait was not worth it.",
+            "Decent meal, nothing too special but okay overall."
+        ]
+    })
+    st.dataframe(example_df, use_container_width=True)
+    st.caption("The column name can be anything — you'll be able to select it after uploading.")
+ 
 # CSV file uploader
 uploaded_file = st.file_uploader(
     "Upload a CSV file with restaurant reviews", 
     type=["csv"])
-
+ 
 # Once the user uploads a csv file:
 if uploaded_file is not None: 
     # Read the file
     reviews_df = pd.read_csv(uploaded_file)
-
+ 
     # Check if the data has a text column
     text_columns = reviews_df.select_dtypes(include="object").columns
-
+ 
     if len(text_columns) == 0:
         st.error("No text columns found in the uploaded file.")
-
+ 
     # Show a dropdown menu to select the review column
     review_column = st.selectbox(
         "Select the column with the customer reviews",
         text_columns
     )
-
+ 
     # Analyze the sentiment of the selected column
     reviews_df["sentiment"] = reviews_df[review_column].apply(classify_sentiment_openai)
     
@@ -76,10 +92,10 @@ if uploaded_file is not None:
     sentiment_counts = reviews_df["sentiment"].value_counts()
     # st.write(reviews_df)
     # st.write(sentiment_counts)
-
+ 
     # Create 3 columns to display the 3 metrics
     col1, col2, col3 = st.columns(3)
-
+ 
     with col1:
         # Show the number of positive reviews and the percentage
         positive_count = sentiment_counts.get("Positive", 0)
@@ -108,3 +124,11 @@ if uploaded_file is not None:
         title='Sentiment Distribution'
     )
     st.plotly_chart(fig)
+ 
+    # Download button for the results
+    st.download_button(
+        label="⬇️ Download Results as CSV",
+        data=reviews_df.to_csv(index=False).encode("utf-8"),
+        file_name="reviews_with_sentiment.csv",
+        mime="text/csv"
+    )
